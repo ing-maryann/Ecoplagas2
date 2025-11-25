@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for
 import requests
+from dotenv import load_dotenv
 import os
 from datetime import datetime, timedelta
 import logging
@@ -7,9 +8,11 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
+
 # Importaciones para Groq
 from groq import Groq
-from dotenv import load_dotenv
+
+
 
 # ===== NUEVAS IMPORTACIONES PARA IMÁGENES =====
 import base64
@@ -666,4 +669,5 @@ def check_auth():
         return jsonify({'authenticated': False})
 
 if __name__ == '__main__':
+
     app.run(debug=True)
