@@ -12,6 +12,7 @@ class Config:
     
     @property
     def DATABASE_URL(self):
-        return f"postgresql://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+        return f"postgresql://{self.DB_postgres}:{self.DB_310503}@{self.DB_localhost}:{self.DB_5432}/{self.DB_Ecoplagas}"
+
 
 config = Config()
