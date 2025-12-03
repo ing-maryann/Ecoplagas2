@@ -167,64 +167,74 @@ def registro():
     finally:
         connection.close()
 
-@app.route('/api/login', methods=['POST'])
+@app.route('/api/login', methods=['GET', 'POST'])
 def login():
-    data = request.json
-    correo = data.get('correo', '').strip()
-    contrasena = data.get('contrasena', '')
-
-    if not correo or not contrasena:
-        return jsonify({'error': 'Correo y contraseña son obligatorios'}), 400
-
-    connection = get_db_connection()
-    if not connection:
-        return jsonify({'error': 'Error de conexión a la base de datos'}), 500
-
-    try:
-        with connection.cursor() as cursor:
-            cursor.execute(
-                "SELECT id, nombre, correo, contrasena_hash, fecha_creacion FROM usuarios WHERE correo = %s;",
-                (correo,)
-            )
-            resultado = cursor.fetchone()
-            
-            if not resultado:
-                return jsonify({'error': 'Credenciales incorrectas'}), 401
-            
-            usuario_id, nombre, correo_db, contrasena_hash, fecha_creacion = resultado
-            
-            if check_password_hash(contrasena_hash, contrasena):
-                session['usuario_id'] = usuario_id
-                session['usuario_nombre'] = nombre
-                session['usuario_correo'] = correo_db
-                
-                usuario = {
-                    'id': usuario_id,
-                    'nombre': nombre,
-                    'correo': correo_db,
-                    'fecha_creacion': fecha_creacion.isoformat() if fecha_creacion else None
+    # ----- MÉTODO GET -----
+    if request.method == 'GET':
+        if 'usuario_id' in session:
+            return jsonify({
+                'logged_in': True,
+                'usuario': {
+                    'id': session.get('id'),
+                    'nombre': session.get('nombre'),
+                    'correo': session.get('correo')
                 }
-                
-                return jsonify({
-                    'success': True,
-                    'message': 'Inicio de sesión exitoso',
-                    'usuario': usuario,
-                    'redirect': '/usuario'
-                })
-            else:
-                return jsonify({'error': 'Credenciales incorrectas'}), 401
-                
-    except Exception as e:
-        logger.error(f"Error en login: {e}")
-        return jsonify({'error': 'Error interno del servidor'}), 500
-    finally:
-        connection.close()
+            })
+        else:
+            return jsonify({'logged_in': False})
 
-@app.route('/api/logout', methods=['POST'])
-def logout_api():
-    """API para cerrar sesión (usada por JavaScript)"""
-    session.clear()
-    return jsonify({'success': True, 'message': 'Sesión cerrada correctamente'})
+    # ----- MÉTODO POST -----
+    if request.method == 'POST':
+        data = request.json
+        correo = data.get('correo', '').strip()
+        contrasena = data.get('contrasena_hash', '')
+
+        if not correo or not contrasena:
+            return jsonify({'error': 'Correo y contraseña son obligatorios'}), 400
+
+        connection = get_db_connection()
+        if not connection:
+            return jsonify({'error': 'Error de conexión a la base de datos'}), 500
+
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT id, nombre, correo, contrasena_hash, fecha_creacion FROM usuarios WHERE correo = %s;",
+                    (correo,)
+                )
+                resultado = cursor.fetchone()
+
+                if not resultado:
+                    return jsonify({'error': 'Credenciales incorrectas'}), 401
+
+                usuario_id, nombre, correo_db, contrasena_hash, fecha_creacion = resultado
+
+                if check_password_hash(contrasena_hash, contrasena):
+                    session['id'] = usuario_id
+                    session['nombre'] = nombre
+                    session['correo'] = correo_db
+
+                    usuario = {
+                        'id': usuario_id,
+                        'nombre': nombre,
+                        'correo': correo_db,
+                        'fecha_creacion': fecha_creacion.isoformat() if fecha_creacion else None
+                    }
+
+                    return jsonify({
+                        'success': True,
+                        'message': 'Inicio de sesión exitoso',
+                        'usuario': usuario,
+                        'redirect': '/usuario'
+                    })
+                else:
+                    return jsonify({'error': 'Credenciales incorrectas'}), 401
+
+        except Exception as e:
+            logger.error(f"Error en login: {e}")
+            return jsonify({'error': 'Error interno del servidor'}), 500
+        finally:
+            connection.close()
 
 @app.route('/logout')
 def logout():
@@ -671,3 +681,4 @@ def check_auth():
 if __name__ == '__main__':
 
     app.run(debug=True)
+
